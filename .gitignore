@@ -1,0 +1,14 @@
+
+DSpractice/.vs/DSpractice/v17/.suo
+DSpractice/.vs/DSpractice/v17/Browse.VC.db
+*.db-shm
+*.db-wal
+*.ipch
+*.opendb
+*.exe
+*.pdb
+*.obj
+*.tlog
+*.ilk
+*.recipe
+*.idb
