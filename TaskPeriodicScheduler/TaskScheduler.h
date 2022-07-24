@@ -3,24 +3,40 @@
 #include <atomic>
 #include <mutex>
 #include <cassert>  
+#include <queue>
+#include <unordered_set>
+#include "Tasks.h"
 
 class TaskScheduler
 {
-	atomic<bool> m_isSchedulerRunning {true};
-
 	static TaskScheduler* m_instance;
 	static once_flag m_flag;
+	//------------------------------------------
 
+	atomic<bool> m_isSchedulerRunning{ false };
+
+	mutex queueUpdateMutex;
+	std::condition_variable QueueUpdateCV;
+	priority_queue< ITask*, vector< ITask* >, TaskComparator> taskQueue;
+
+	mutex setUpdateMutex;
+	unordered_set< ITask*> taskSet;
+	//==================================================================
+	void ClearTasks();
 	TaskScheduler() { 	}
 
 	~TaskScheduler()	{
-		Clear();
+		ClearTasks();
 	}
 
 	void Create_Scheduler()	{
 		m_instance = new TaskScheduler();
 	}
 	//==================================================================
+
+	void StartScheduler();
+
+	void InsertNewTask(ITask* task);
 
 public:
 	TaskScheduler(const TaskScheduler&) = delete;
@@ -52,7 +68,7 @@ public:
 	void StopTaskScheduler()
 	{
 		m_isSchedulerRunning.store ( false);
-		Clear();
+		ClearTasks();
 	}
 	//==================================================================
 };

@@ -13,17 +13,25 @@ typedef void ( * TaskFuncPtr) (void);
 
 struct TaskId
 {
-	uint64_t id;
+	uint64_t taskID{0};
+	TaskId()
+	{}
+	TaskId(uint64_t id) :taskID(id)
+	{}
+	uint64_t GetTaskId()	{
+		return taskID;
+	}
 };
+
 //------------------------------------
 
-enum ExecutionFrequency
+enum class ExecutionFrequency
 {
 	OneTimeExecution,
 	RepeatedExecution,
 };
 //------------------------------------
-enum TaskStatus
+enum class TaskStatus
 {
 	Created,
 	Scheduled,
