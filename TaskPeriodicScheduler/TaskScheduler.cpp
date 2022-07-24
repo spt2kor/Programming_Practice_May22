@@ -9,25 +9,16 @@ void TaskScheduler::StartScheduler()
 	static_assert(false, " need to implement this function");
 }
 
-
 //=========================================================================
 TaskId TaskScheduler::AddOneTimeTask(TaskFuncPtr fnptr
 	, time_point firstExecTime
 	, time_duration initialDelay)
 {
-	TaskId dummy;
-	if (m_isSchedulerRunning == true)
-	{
-		OneTimeTask* aTask = new OneTimeTask(fnptr, firstExecTime, initialDelay);
+	if (false == m_isSchedulerRunning)
+		return TaskId();
 
-		TaskId tID(reinterpret_cast<uint64_t> (aTask));
-
-		InsertNewTask(aTask);
-
-		return tID;
-	}
-
-	return dummy;
+	OneTimeTask* aTask = new OneTimeTask(fnptr, firstExecTime, initialDelay);
+	return  InsertNewTask(aTask);
 }
 
 //=========================================================================
@@ -36,24 +27,23 @@ TaskId TaskScheduler::AddRepeatTask(TaskFuncPtr  fnptr
 	, time_duration initialDelay
 	, time_duration repeatTime)
 {
+	if (false == m_isSchedulerRunning)
+		return TaskId();
+
 	RepeatTask* aTask = new RepeatTask(fnptr, firstExecTime, initialDelay, repeatTime);
-
-	TaskId tID(reinterpret_cast<uint64_t> (aTask));
-
-	InsertNewTask(aTask);
-
-	return tID;
+	return  InsertNewTask(aTask);
 }
 
-
 //=========================================================================
-void TaskScheduler::InsertNewTask(ITask* task)
+TaskId TaskScheduler::InsertNewTask(ITask* task)
 {
+	TaskId tID(reinterpret_cast<uint64_t> (task));
+
 	{
 		lock_guard<mutex> lg(setUpdateMutex);
 		taskSet.insert(task);
 	}
-	
+
 	task->SetTaskStatus(TaskStatus::Scheduled);
 
 	{
@@ -62,17 +52,24 @@ void TaskScheduler::InsertNewTask(ITask* task)
 	}
 
 	QueueUpdateCV.notify_all(); // can be notify_one
+
+	return tID;
 }
 
 //=========================================================================
 bool TaskScheduler::StopATask(TaskId tId)
 {
-	ITask *aTask =  reinterpret_cast<ITask*> (tId.GetTaskId());
 	bool isValidTask = false;
+	if ( ! tId )
+		return isValidTask;
+
+	ITask *aTask =  reinterpret_cast<ITask*> (tId.GetTaskId());
 	{
 		lock_guard<mutex> lg(setUpdateMutex);
-		if (taskSet.find(aTask) != taskSet.end())
+		auto itr = taskSet.find(aTask);
+		if ( itr != taskSet.end())
 		{
+			taskSet.erase(itr);
 			isValidTask = true;
 		}
 	}

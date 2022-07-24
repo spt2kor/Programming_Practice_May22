@@ -18,8 +18,11 @@ struct TaskId
 	{}
 	TaskId(uint64_t id) :taskID(id)
 	{}
-	uint64_t GetTaskId()	{
+	uint64_t GetTaskId() const {
 		return taskID;
+	}
+	 operator bool() const{
+		return 0 != taskID;
 	}
 };
 

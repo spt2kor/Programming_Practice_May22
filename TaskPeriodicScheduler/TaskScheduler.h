@@ -36,7 +36,7 @@ class TaskScheduler
 
 	void StartScheduler();
 
-	void InsertNewTask(ITask* task);
+	TaskId InsertNewTask(ITask* task);
 
 public:
 	TaskScheduler(const TaskScheduler&) = delete;
