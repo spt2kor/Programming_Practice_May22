@@ -4,9 +4,9 @@
 #include <chrono>
 
 using namespace std;
-
-typedef std::chrono::system_clock::time_point		time_point;
-typedef std::chrono::system_clock::duration			time_duration;
+typedef std::chrono::system_clock		system_clock;
+typedef system_clock::time_point		time_point;
+typedef system_clock::duration			time_duration;
 
 typedef void ( * TaskFuncPtr) (void);
 //------------------------------------
@@ -38,6 +38,7 @@ enum class TaskStatus
 {
 	Created,
 	Scheduled,
-	MarkDeleted,
+	Running,
+	MarkDelete
 };
 //------------------------------------

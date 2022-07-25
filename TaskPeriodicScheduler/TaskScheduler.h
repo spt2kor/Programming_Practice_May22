@@ -11,22 +11,27 @@ class TaskScheduler
 {
 	static TaskScheduler* m_instance;
 	static once_flag m_flag;
-	//------------------------------------------
 
+	//------------------------------------------
+	thread scheduler_thread;
 	atomic<bool> m_isSchedulerRunning{ false };
 
 	mutex queueUpdateMutex;
 	std::condition_variable QueueUpdateCV;
-	priority_queue< ITask*, vector< ITask* >, TaskComparator> taskQueue;
+	typedef priority_queue< ITask*, vector< ITask* >, TaskComparator> Task_Priority_Queue;
+	Task_Priority_Queue taskQueue;
 
 	mutex setUpdateMutex;
 	unordered_set< ITask*> taskSet;
 	//==================================================================
 	void ClearTasks();
-	TaskScheduler() { 	}
+
+	TaskScheduler() { 	
+		scheduler_thread = thread( &TaskScheduler::LaunchSchedulerThread , this );
+	}
 
 	~TaskScheduler()	{
-		ClearTasks();
+		StopTaskScheduler();
 	}
 
 	void Create_Scheduler()	{
@@ -34,10 +39,12 @@ class TaskScheduler
 	}
 	//==================================================================
 
-	void StartScheduler();
+	void LaunchSchedulerThread();
+
 
 	TaskId InsertNewTask(ITask* task);
 
+	void ExecuteTask(ITask* task);
 public:
 	TaskScheduler(const TaskScheduler&) = delete;
 	TaskScheduler(TaskScheduler&&) = delete;
@@ -65,11 +72,7 @@ public:
 	//==================================================================
 
 
-	void StopTaskScheduler()
-	{
-		m_isSchedulerRunning.store ( false);
-		ClearTasks();
-	}
+	void StopTaskScheduler();
 	//==================================================================
 };
 
