@@ -9,7 +9,7 @@ class ITask
 protected:
 	TaskStatus		tStatus{ TaskStatus::Created };
 
-	TaskId			tId{ 0 };
+	TaskId			taskId{ 0 };
 
 	TaskFuncPtr		fnptr;
 	time_point		firstExecTime;
@@ -20,33 +20,29 @@ protected:
 	ExecutionFrequency execFreqType {ExecutionFrequency::OneTimeExecution};
 
 	thread			threadID;
+
 public:
 	ITask(TaskFuncPtr fnptr, time_point firstExecTime
-		, time_duration	firstDelayDuration, ExecutionFrequency Tasktype)
-		: fnptr(fnptr), firstExecTime(firstExecTime)
-		, firstDelayDuration(firstDelayDuration), nextExecTime(firstExecTime)
-		, execFreqType(Tasktype)
-	{
-		CalculateNextExecTime();
-	}
+		, time_duration	firstDelayDuration, ExecutionFrequency Tasktype);
 
-	virtual ~ITask() = 0
-	{	}
+	// NOTE: will try to join the task in DTOR ITask::~ITask(), then cleanup the memory
+	virtual ~ITask() = 0;
 
-	thread& GetThreadID() {
+	thread& GetThreadID()  {
 		return threadID;
 	}
 	void SetThreadID(thread&& trId) {
 		swap(threadID,trId);
 	}
 
+	//default func , execute the fnptr, supress if exception happens
 	virtual void Execute();
 
 	virtual void CalculateNextExecTime() {
 		nextExecTime = firstExecTime + firstDelayDuration;
 	}
 
-	time_point GetNextExecTime() {
+	time_point GetNextExecTime() const{
 		return nextExecTime;
 	}
 	//==================================================================
@@ -54,15 +50,18 @@ public:
 		tStatus = aStatus;
 	}
 
-	TaskStatus GetTaskStatus() {
+	TaskStatus GetTaskStatus() const{
 		return tStatus;
 	}
 
 	void SetTaskID(TaskId aTaskId) {
-		tId = aTaskId;
+		taskId = aTaskId;
+	}
+	TaskId GetTaskID() {
+		return taskId;
 	}
 
-	ExecutionFrequency GetExecutionFrequency()
+	ExecutionFrequency GetExecutionFrequency() const
 	{
 		return execFreqType;
 	}
@@ -71,6 +70,8 @@ public:
 	{
 		return a.nextExecTime < b.nextExecTime;
 	}
+
+	void PrintTask() const;
 };
 
 //===============================================================
@@ -95,6 +96,7 @@ public:
 
 
 //===============================================================
+//===============================================================
 class RepeatTask : public ITask
 {
 	time_duration	repeatTimeDuration;
@@ -107,6 +109,8 @@ public:
 	{
 	}
 
+	//default func , execute the fnptr, supress if exception happens
+	//NOTE: also calculat the next execution time for the repeat task
 	void Execute();
 
 	void CalculateNextExecTime() {
@@ -115,7 +119,5 @@ public:
 
 	~RepeatTask() = default;
 };
-
-
 //===============================================================
 
