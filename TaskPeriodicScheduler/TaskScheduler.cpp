@@ -7,9 +7,9 @@ once_flag TaskScheduler::m_flag;
 
 //=========================================================================
 //Init TaskScheduler and launch the TaskScheduler thread
-TaskScheduler::TaskScheduler() 
+TaskScheduler::TaskScheduler()  
 {
-	scheduler_thread = thread(&TaskScheduler::LaunchSchedulerThread, this);
+	//scheduler_thread = thread(&TaskScheduler::LaunchSchedulerThread, this);
 }
 
 TaskScheduler::~TaskScheduler() {
@@ -34,7 +34,7 @@ TaskScheduler& TaskScheduler::GetInstance()
 // entering task is either TaskStatus::MarkDelete or TaskStatus::Scheduled
 void TaskScheduler::ExecuteTask(ITask* task)
 {
-	cout << "## starting ExecuteTask() " << endl;
+	cout << "## starting ExecuteTask(): GetTaskIntID =  "<< task->GetTaskIntID() << endl;
 	try
 	{
 		bool isMarkDelete = false;
@@ -80,9 +80,9 @@ void TaskScheduler::ExecuteTask(ITask* task)
 	{
 		cout << "## Unknown Exception Caught in ExecuteTask() " << endl;
 	}
-	cout << "## Closing ExecuteTask() " << endl;
+	cout << "## Closing ExecuteTask() GetTaskIntID =  " << task->GetTaskIntID() << endl;
 
-	task->SetThreadID(thread()); // release the thread handle from ITask.
+	//task->SetThreadID(thread()); // release the thread handle from ITask.
 	return;
 }
 
@@ -116,12 +116,12 @@ void TaskScheduler::LaunchSchedulerThread()
 				processTask = taskQueue.top();
 				taskQueue.pop();
 
-				cout << " ### LaunchSchedulerThread() start execution of current task :"<< processTask->GetTaskID().GetTaskId() << endl;
+				cout << " ### LaunchSchedulerThread() start execution of current task :"<< processTask->GetTaskIntID() << endl;
 
 				processTask->SetThreadID(thread(&TaskScheduler::ExecuteTask, this, processTask));
 			}
 			else // may be new task got added(or surious wake), calculate the next_time_point again
-				cout << "## LaunchSchedulerThread(), Wakeup without TimeOut." << endl;
+				cout << "\n## TaskScheduler::LaunchSchedulerThread(), Wakeup without TimeOut." << endl;
 
 			ulk.unlock();
 		}
@@ -139,22 +139,24 @@ void TaskScheduler::LaunchSchedulerThread()
 
 //=========================================================================
 //add one time task and return the handler wrapped inside TaskId
-TaskId TaskScheduler::AddOneTimeTask(TaskFuncPtr fnptr
+TaskId TaskScheduler::AddOneTimeTask(int taskIntID
+	, TaskFuncPtr fnptr
 	, time_point firstExecTime
 	, time_duration initialDelay)
 {
 	if (false == m_isSchedulerRunning)
 		return TaskId();
 
-	OneTimeTask* aTask = new OneTimeTask(fnptr, firstExecTime, initialDelay);
+	OneTimeTask* aTask = new OneTimeTask(taskIntID, fnptr, firstExecTime, initialDelay);
 	auto tID = InsertNewTask(aTask);
-	cout << " ### Added new One Time task, successfully tID = " << tID.GetTaskId() << endl;
+	cout << " ### TaskScheduler::AddOneTimeTask() - Added new One Time task, successfully tID = " << taskIntID << endl;
 	return tID;
 }
 
 //=========================================================================
 //add Repeat task and return the handler wrapped inside TaskId
-TaskId TaskScheduler::AddRepeatTask(TaskFuncPtr  fnptr
+TaskId TaskScheduler::AddRepeatTask(int taskIntID
+	, TaskFuncPtr  fnptr
 	, time_point firstExecTime
 	, time_duration initialDelay
 	, time_duration repeatTime)
@@ -162,9 +164,9 @@ TaskId TaskScheduler::AddRepeatTask(TaskFuncPtr  fnptr
 	if (false == m_isSchedulerRunning)
 		return TaskId();
 
-	RepeatTask* aTask = new RepeatTask(fnptr, firstExecTime, initialDelay, repeatTime);
+	RepeatTask* aTask = new RepeatTask(taskIntID, fnptr, firstExecTime, initialDelay, repeatTime);
 	auto tID = InsertNewTask(aTask);
-	cout << " ### Added Repeat Time task, successfully tID = " << tID.GetTaskId() << endl;
+	cout << " ### TaskScheduler::AddRepeatTask() - Added Repeat Time task, successfully tID = " << taskIntID << endl;
 	return tID;
 }
 
@@ -176,7 +178,7 @@ TaskId TaskScheduler::InsertNewTask(ITask* task, bool repeatTask ) //, bool repe
 	//if scheduler is stopped then dont insert new task.
 	if (false == m_isSchedulerRunning)
 	{
-		cout << " ### Scehduler is stopped , unable to add new task tID = " << tID.GetTaskId() << endl;
+		cout << " ### TaskScheduler::InsertNewTask()- Scehduler is stopped , unable to add new task tID = " << task->GetTaskIntID() << endl;
 		return tID;
 	}
 
@@ -192,7 +194,7 @@ TaskId TaskScheduler::InsertNewTask(ITask* task, bool repeatTask ) //, bool repe
 		lock_guard<mutex> lg(queueUpdateMutex);
 		taskQueue.push(task);
 	}
-	cout << " ### Added task to Queue, successfully tID = " << tID.GetTaskId() << endl;
+	cout << " ### ### TaskScheduler::InsertNewTask() - Added task to Queue, successfully tID = " << task->GetTaskIntID() << endl;
 	QueueUpdateCV.notify_all(); // notify to scheduler_thread
 
 	return tID;
@@ -204,15 +206,17 @@ TaskId TaskScheduler::InsertNewTask(ITask* task, bool repeatTask ) //, bool repe
 
 bool TaskScheduler::StopATask(TaskId tId)
 {
+	cout << " ### TaskScheduler::StopATask() requested  tId = " << tId.GetTaskId() << endl;
 	if (tId) ////validate the task,
 	{
 		ITask* aTask = reinterpret_cast<ITask*> (tId.GetTaskId());
+		cout << " ### TaskScheduler::StopATask() requested  aTask = " << aTask << endl;
 		{
 			lock_guard<mutex> lg(setUpdateMutex);
 			auto itr = taskSet.find(aTask);
 			if (itr != taskSet.end())
 			{
-				cout << " ### StopATask() mark for delete successfully tID = " << tId.GetTaskId() << endl;
+				cout << " ### TaskScheduler::StopATask() mark for delete successfully tID = " << aTask->GetTaskIntID() << endl;
 				aTask->SetTaskStatus(TaskStatus::MarkDelete);
 				return true;
 			}
@@ -227,7 +231,7 @@ bool TaskScheduler::StopATask(TaskId tId)
 //wait for already running tasks to get joined, then delete tasks from taskSet
 void TaskScheduler::ClearTasks()
 {
-	cout << " ### request to ClearTasks() " << endl;
+	cout << " ### request to TaskScheduler::ClearTasks() " << endl;
 	//empty the taskQueue and destroy it.
 	{
 		Task_Priority_Queue qToDelete;
@@ -245,24 +249,24 @@ void TaskScheduler::ClearTasks()
 
 		taskSet.clear();
 	}
-	cout << " ### ClearTasks() successfully "<< endl;
+	cout << " ### TaskScheduler::ClearTasks() successfully "<< endl;
 }
 
 //=========================================================================
 //mark m_isSchedulerRunning=false, and wait for scheduler_thread to join and clean the taskQueue and TaskSet
 void TaskScheduler::StopTaskScheduler()
 {
-	cout << " ### request to StopTaskScheduler() " << endl;
+	cout << " ### request to TaskScheduler::StopTaskScheduler() " << endl;
 	m_isSchedulerRunning.store(false);
 	QueueUpdateCV.notify_all(); // can be notify_one
 	ClearTasks();
 
 	if (scheduler_thread.joinable())
 	{
-		cout << " ### StopTaskScheduler() , waiting to join the scheduler_thread" << endl;
+		cout << " ### TaskScheduler::StopTaskScheduler() , waiting to join the scheduler_thread" << endl;
 		scheduler_thread.join();
 	}
-	cout << " ### StopTaskScheduler() successfully " << endl;
+	cout << " ### TaskScheduler::StopTaskScheduler() successfully " << endl;
 }
 
 //distroy the instance explicitly, and free the memory
@@ -273,6 +277,21 @@ void TaskScheduler::DistroyInstance()
 		delete m_instance;
 		m_instance = nullptr;
 	}
+}
+//=========================================================================
+
+//mark m_isSchedulerRunning=true, clean the previous data, and start new thread
+void TaskScheduler::StartTaskScheduler()
+{
+	cout << " ### request to TaskScheduler::StartTaskScheduler() " << endl;
+	int stopCount=5;
+	while (true == m_isSchedulerRunning && stopCount>0) {
+		cout << " ### TaskScheduler::StartTaskScheduler() - ERROR Old scheduler thread is already running, trying to stop now :tryCount = "<< (5- stopCount +1)<< endl;
+		StopTaskScheduler();
+	}
+
+	auto newThread = thread(&TaskScheduler::LaunchSchedulerThread, this);
+	swap(scheduler_thread, newThread);
 }
 
 //=========================================================================

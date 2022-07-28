@@ -7,26 +7,32 @@
 class ITask
 {
 protected:
-	TaskStatus		tStatus{ TaskStatus::Created };
+	int					taskIntID;
+	TaskStatus			tStatus{ TaskStatus::Created };
 
-	TaskId			taskId{ 0 };
+	TaskId				taskId{ 0 };
 
-	TaskFuncPtr		fnptr;
-	time_point		firstExecTime;
-	time_duration	firstDelayDuration;
+	TaskFuncPtr			fnptr;
+	time_point			firstExecTime;
+	time_duration		firstDelayDuration;
 
-	time_point		nextExecTime;
+	time_point			nextExecTime;
 
 	ExecutionFrequency execFreqType {ExecutionFrequency::OneTimeExecution};
 
-	thread			threadID;
+	thread				threadID;
 
 public:
-	ITask(TaskFuncPtr fnptr, time_point firstExecTime
+	ITask(int taskIntID , TaskFuncPtr fnptr, time_point firstExecTime
 		, time_duration	firstDelayDuration, ExecutionFrequency Tasktype);
 
 	// NOTE: will try to join the task in DTOR ITask::~ITask(), then cleanup the memory
 	virtual ~ITask() = 0;
+
+	int GetTaskIntID()
+	{
+		return taskIntID;
+	}
 
 	thread& GetThreadID()  {
 		return threadID;
@@ -87,8 +93,8 @@ struct TaskComparator
 class OneTimeTask : public ITask
 {
 public:
-	OneTimeTask(TaskFuncPtr fnptr, time_point	firstExecTime, time_duration firstDelayDuration)
-		: ITask(fnptr, firstExecTime, firstDelayDuration, ExecutionFrequency::OneTimeExecution)
+	OneTimeTask(int taskIntID, TaskFuncPtr fnptr, time_point	firstExecTime, time_duration firstDelayDuration)
+		: ITask(taskIntID, fnptr, firstExecTime, firstDelayDuration, ExecutionFrequency::OneTimeExecution)
 	{}
 
 	~OneTimeTask() = default;
@@ -102,9 +108,9 @@ class RepeatTask : public ITask
 	time_duration	repeatTimeDuration;
 
 public:
-	RepeatTask(TaskFuncPtr fnptr, time_point firstExecTime
+	RepeatTask(int taskIntID, TaskFuncPtr fnptr, time_point firstExecTime
 		, time_duration	firstDelayDuration, time_duration repeatTimeDuration)
-		: ITask(fnptr, firstExecTime, firstDelayDuration, ExecutionFrequency::RepeatedExecution)
+		: ITask(taskIntID, fnptr, firstExecTime, firstDelayDuration, ExecutionFrequency::RepeatedExecution)
 		, repeatTimeDuration(repeatTimeDuration)
 	{
 	}

@@ -68,12 +68,14 @@ public:
 
 	//==================================================================
 	//add one time task and return the handler wrapped inside TaskId
-	TaskId AddOneTimeTask( TaskFuncPtr  fnptr
+	TaskId AddOneTimeTask( int taskIntID
+						 , TaskFuncPtr  fnptr
 						 , time_point firstExecTime
 						 , time_duration initialDelay);
 	
 	//add Repeat task and return the handler wrapped inside TaskId
-	TaskId AddRepeatTask( TaskFuncPtr  fnptr
+	TaskId AddRepeatTask(int taskIntID
+						, TaskFuncPtr  fnptr
 						, time_point firstExecTime 
 						, time_duration initialDelay 
 						, time_duration repeatTime);
@@ -86,6 +88,16 @@ public:
 	//mark m_isSchedulerRunning=false, and wait for scheduler_thread to join and clean the taskQueue and TaskSet
 	void StopTaskScheduler();
 	//==================================================================
+	//mark m_isSchedulerRunning=true, clean the previous data, and start new thread
+	void StartTaskScheduler();
+	//==================================================================
+
 };
 
 
+//=================================================================================
+void OneTimeTaskFunc();
+
+
+void RepeatTaskFunc();
+//=================================================================================
