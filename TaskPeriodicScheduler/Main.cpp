@@ -28,7 +28,7 @@ int  main()
 
 	tester.TestSingleRepeatTask();
 
-	//tester.Test10OneTimeTaskAnd10RepeatTaskWithTaskStop();
+	tester.Test10OneTimeTaskAnd10RepeatTaskWithTaskStop();
 
 	cout << "\n **** Main() Ended" << endl;
 	return 0;

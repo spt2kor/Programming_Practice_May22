@@ -9,7 +9,6 @@ once_flag TaskScheduler::m_flag;
 //Init TaskScheduler and launch the TaskScheduler thread
 TaskScheduler::TaskScheduler()  
 {
-	//scheduler_thread = thread(&TaskScheduler::LaunchSchedulerThread, this);
 }
 
 TaskScheduler::~TaskScheduler() {
@@ -37,12 +36,7 @@ void TaskScheduler::ExecuteTask(ITask* task)
 	cout << "## starting ExecuteTask(): GetTaskIntID =  "<< task->GetTaskIntID() << endl;
 	try
 	{
-		bool isMarkDelete = false;
-		if (TaskStatus::MarkDelete == task->GetTaskStatus())
-		{
-			isMarkDelete = true;
-		}
-		else if(true == m_isSchedulerRunning )//TaskStatus::Scheduled
+		if(true == m_isSchedulerRunning && (TaskStatus::MarkDelete != task->GetTaskStatus()))//TaskStatus::Scheduled
 		{	
 			task->SetTaskStatus(TaskStatus::Running);
 			
@@ -56,19 +50,11 @@ void TaskScheduler::ExecuteTask(ITask* task)
 			if (task->GetExecutionFrequency() == ExecutionFrequency::OneTimeExecution)
 			{
 				task->SetTaskStatus(TaskStatus::MarkDelete);
-				isMarkDelete = true;
 			}
 			else //if(task->GetExecutionFrequency() == ExecutionFrequency::RepeatedExecution)
 			{
 				//NOTE: new time is already got calculated during RepeatTask::Execute()
 				InsertNewTask(task, true); 
-			}
-		}
-		if (isMarkDelete)
-		{
-			{
-				lock_guard<mutex> lg(setUpdateMutex);
-				taskSet.erase(task);
 			}
 		}
 	}
@@ -82,7 +68,6 @@ void TaskScheduler::ExecuteTask(ITask* task)
 	}
 	cout << "## Closing ExecuteTask() GetTaskIntID =  " << task->GetTaskIntID() << endl;
 
-	//task->SetThreadID(thread()); // release the thread handle from ITask.
 	return;
 }
 
@@ -116,14 +101,31 @@ void TaskScheduler::LaunchSchedulerThread()
 				processTask = taskQueue.top();
 				taskQueue.pop();
 
-				cout << " ### LaunchSchedulerThread() start execution of current task :"<< processTask->GetTaskIntID() << endl;
+				//Note: remove the lock on the queue, sothat we dont hold onto both(mapUpdateMutex) the lock at same time 
+				ulk.unlock();
 
-				processTask->SetThreadID(thread(&TaskScheduler::ExecuteTask, this, processTask));
+				if (taskToThreadMap[processTask].joinable())
+					taskToThreadMap[processTask].join();
+
+				cout << " ### LaunchSchedulerThread() start execution of current task :"<< processTask->GetTaskIntID() << endl;
+				if (TaskStatus::MarkDelete != processTask->GetTaskStatus())
+				{	
+					lock_guard<mutex> lg(mapUpdateMutex);
+					auto newThread = thread(&TaskScheduler::ExecuteTask, this, processTask);
+					taskToThreadMap[processTask] = move(newThread);
+				}
+				else 
+				{
+					lock_guard<mutex> lg(mapUpdateMutex);
+					taskToThreadMap.erase(processTask);
+				}
 			}
 			else // may be new task got added(or surious wake), calculate the next_time_point again
+			{
+				ulk.unlock();
 				cout << "\n## TaskScheduler::LaunchSchedulerThread(), Wakeup without TimeOut." << endl;
+			}
 
-			ulk.unlock();
 		}
 	}
 	catch (exception& e)
@@ -184,8 +186,8 @@ TaskId TaskScheduler::InsertNewTask(ITask* task, bool repeatTask ) //, bool repe
 
 	if(!repeatTask) // if repeat task then dont add into taskSet
 	{
-		lock_guard<mutex> lg(setUpdateMutex);
-		taskSet.insert(task);
+		lock_guard<mutex> lg(mapUpdateMutex);
+		taskToThreadMap.emplace(  task , thread()  );
 	}
 
 	task->SetTaskStatus(TaskStatus::Scheduled);
@@ -212,9 +214,9 @@ bool TaskScheduler::StopATask(TaskId tId)
 		ITask* aTask = reinterpret_cast<ITask*> (tId.GetTaskId());
 		cout << " ### TaskScheduler::StopATask() requested  aTask = " << aTask << endl;
 		{
-			lock_guard<mutex> lg(setUpdateMutex);
-			auto itr = taskSet.find(aTask);
-			if (itr != taskSet.end())
+			lock_guard<mutex> lg(mapUpdateMutex);
+			auto itr = taskToThreadMap.find(aTask);
+			if (itr != taskToThreadMap.end())
 			{
 				cout << " ### TaskScheduler::StopATask() mark for delete successfully tID = " << aTask->GetTaskIntID() << endl;
 				aTask->SetTaskStatus(TaskStatus::MarkDelete);
@@ -240,14 +242,18 @@ void TaskScheduler::ClearTasks()
 	}
 	//wait for already running tasks to get joined, then delete tasks from taskSet
 	{
-		lock_guard<mutex> lg(setUpdateMutex);
-		for_each(taskSet.begin(), taskSet.end(), [](auto* task) {
+		lock_guard<mutex> lg(mapUpdateMutex);
+		for(auto itr = taskToThreadMap.begin(); itr != taskToThreadMap.end(); ++itr ) 
+		{
 				// NOTE: will try to join the task in DTOR ITask::~ITask(), then cleanup the memory
-				delete task; 
-				task = nullptr;
-		});
+				if (itr->second.joinable())
+					itr->second.join();
 
-		taskSet.clear();
+				itr->second = move( thread());
+				delete itr->first;
+		};
+		
+		taskToThreadMap.clear();
 	}
 	cout << " ### TaskScheduler::ClearTasks() successfully "<< endl;
 }

@@ -20,8 +20,6 @@ protected:
 
 	ExecutionFrequency execFreqType {ExecutionFrequency::OneTimeExecution};
 
-	thread				threadID;
-
 public:
 	ITask(int taskIntID , TaskFuncPtr fnptr, time_point firstExecTime
 		, time_duration	firstDelayDuration, ExecutionFrequency Tasktype);
@@ -32,13 +30,6 @@ public:
 	int GetTaskIntID()
 	{
 		return taskIntID;
-	}
-
-	thread& GetThreadID()  {
-		return threadID;
-	}
-	void SetThreadID(thread&& trId) {
-		swap(threadID,trId);
 	}
 
 	//default func , execute the fnptr, supress if exception happens
@@ -78,6 +69,10 @@ public:
 	}
 
 	void PrintTask() const;
+
+	string GetExecutionFrequencyAsString() {
+		return (ExecutionFrequency::OneTimeExecution == execFreqType) ? "OneTimeExecution" : "RepeatedExecution";
+	}
 };
 
 //===============================================================
@@ -106,7 +101,7 @@ public:
 class RepeatTask : public ITask
 {
 	time_duration	repeatTimeDuration;
-
+	int repeatExecCount{ 0 };
 public:
 	RepeatTask(int taskIntID, TaskFuncPtr fnptr, time_point firstExecTime
 		, time_duration	firstDelayDuration, time_duration repeatTimeDuration)

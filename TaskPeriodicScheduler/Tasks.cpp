@@ -41,34 +41,19 @@ void ITask::Execute() {
 // NOTE: will try to join the task in DTOR ITask::~ITask(), then cleanup the memory
 ITask::~ITask()
 {
-	if (TaskStatus::Running == tStatus)
-	{
-		if (threadID.joinable())
-			threadID.join();
-		tStatus = TaskStatus::MarkDelete;
-	}
 }
 
 //-------------------------------------------------------------------------------------------
-/*TaskStatus		tStatus{TaskStatus::Created};
-TaskId			taskId{ 0 };
-TaskFuncPtr		fnptr;
-time_point		firstExecTime;
-time_duration	firstDelayDuration;
-time_point		nextExecTime;
-ExecutionFrequency execFreqType{ ExecutionFrequency::OneTimeExecution };
-thread			threadID;
-*/
 void ITask::PrintTask() const
 {
-	cout << "\n \txxx ITask int ID : [[ " << taskIntID <<" ]] " << endl;
+	cout << "\n \txxx ITask int ID : [[ " << taskIntID <<" ]], [[" << GetExecutionFrequencyAsString() << "]] "<< endl;
 }
 
 //=========================================================================================
 //=========================================================================================
 // launch new thread, calculate next Exec time , insert next task into Scheduler
 void RepeatTask::Execute() {
-	cout << "\txxx starting RepeatTask::Execute() " << endl;
+	cout << "\txxx starting RepeatTask::Execute() . repeatExecCount = " << ++repeatExecCount << endl;
 	ITask::Execute();
 	CalculateNextExecTime();
 	cout << "\txxx Closing RepeatTask::Execute() " << endl;

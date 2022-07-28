@@ -4,7 +4,7 @@
 #include <mutex>
 #include <cassert>  
 #include <queue>
-#include <unordered_set>
+#include <unordered_map>
 #include "Tasks.h"
 
 class TaskScheduler
@@ -23,8 +23,9 @@ class TaskScheduler
 	std::condition_variable QueueUpdateCV;	
 	Task_Priority_Queue taskQueue;
 
-	mutex setUpdateMutex;
-	unordered_set< ITask*> taskSet;
+	mutex mapUpdateMutex;
+	unordered_map< ITask*,thread> taskToThreadMap;
+	
 	//==================================================================
 	//remove task from taskQueue and taskSet
 	//empty the taskQueue and destroy it.
