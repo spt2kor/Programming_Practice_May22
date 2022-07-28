@@ -47,6 +47,31 @@ void TestForTaskScheduler::TestSingleOneTimeTask()
 }
 //===============================================================================================
 //===============================================================================================
+void TestForTaskScheduler::TestStopOfSingleOneTimeTask()
+{
+	cout << "\n===============================================" << endl;
+	cout << "@@@@ starting test TestForTaskScheduler::TestStopOfSingleOneTimeTask" << endl;
+	cout << "\n===============================================" << endl;
+	taskScheduler.StartTaskScheduler();
+	this_thread::sleep_for(1s);
+
+	cout << "\n **** Adding One Time Task id= 10 , delay = 3s" << endl;
+	TaskId onceTask = taskScheduler.AddOneTimeTask(10, OneTimeTaskFunc
+		, std::chrono::system_clock::now(), 20s);
+
+	this_thread::sleep_for(3s);
+	//try stoppping one time task
+	cout << "\n ****  try stopping One Time Task i= " << 10 << endl;
+	taskScheduler.StopATask(onceTask);
+
+	cout << "\n TestForTaskScheduler::TestStopOfSingleOneTimeTask going on wait for 7s" << endl;
+	this_thread::sleep_for(7s);
+	taskScheduler.StopTaskScheduler();
+	cout << "\n===============================================" << endl;
+}
+
+//===============================================================================================
+//===============================================================================================
 void TestForTaskScheduler::TestSingleRepeatTask()
 {
 	cout << "\n===============================================" << endl;
@@ -66,6 +91,75 @@ void TestForTaskScheduler::TestSingleRepeatTask()
 	cout << "\n===============================================" << endl;
 }
 
+//===============================================================================================
+//===============================================================================================
+void TestForTaskScheduler::TestStopOfSingleRepeatTask()
+{
+	cout << "\n===============================================" << endl;
+	cout << "@@@@ starting test TestForTaskScheduler::TestStopOfSingleRepeatTask" << endl;
+	cout << "\n===============================================" << endl;
+	taskScheduler.StartTaskScheduler();
+	this_thread::sleep_for(1s);
+
+	cout << "\n **** Adding Repeat Task id= 20 , delay = 3s" << endl;
+	TaskId reptTask = taskScheduler.AddRepeatTask(20, RepeatTaskFunc
+		, std::chrono::system_clock::now()
+		, 1s, 2s);
+
+
+	this_thread::sleep_for(10s);
+	//try stoppping one time task
+	cout << "\n ****  try stopping repeat Task after 10se,  id= " << 20 << endl;
+	taskScheduler.StopATask(reptTask);
+
+
+	cout << "\n TestForTaskScheduler::TestStopOfSingleRepeatTask going on wait for 10s" << endl;
+	this_thread::sleep_for(10s);
+	taskScheduler.StopTaskScheduler();
+	cout << "\n===============================================" << endl;
+}
+
+//===============================================================================================
+//===============================================================================================
+void TestForTaskScheduler::Test2OneTimeTaskAnd2RepeatTaskWithTaskStop()
+{
+	cout << "\n===============================================" << endl;
+	cout << "@@@@ starting test TestForTaskScheduler::Test2OneTimeTaskAnd2RepeatTaskWithTaskStop" << endl;
+	cout << "\n===============================================" << endl;
+
+	taskScheduler.StartTaskScheduler();
+	this_thread::sleep_for(2s);
+
+	//add one time tasks
+	vector<TaskId> onceTasksVec;
+	int tid = 10;
+	for (int i = 0; i < 2; ++i , ++tid) {
+		cout << "\n **** Adding One Time Task i= " << i + tid << endl;
+		onceTasksVec.push_back(
+			taskScheduler.AddOneTimeTask(i + tid , OneTimeTaskFunc
+				, std::chrono::system_clock::now(), 5s * (i + 1)));
+	}
+	this_thread::sleep_for(1s);
+
+	//add Repeat time tasks
+	vector<TaskId> reptTasksVec;
+	tid += 100;
+	for (int i = 0; i < 2; ++i , ++tid) {
+		cout << "\n ****  Adding Repeat Time Task i= " << i + tid << endl;
+		reptTasksVec.push_back(
+			taskScheduler.AddRepeatTask(i + tid, RepeatTaskFunc
+				, std::chrono::system_clock::now()
+				, 2s * (i + 1), 5s * (i % 4 + 1)));
+	}
+
+	this_thread::sleep_for(30s);
+	//closing the scheduler
+	cout << "\n ****  try StopTaskScheduler() " << endl;
+	taskScheduler.StopTaskScheduler();
+
+	taskScheduler.StopTaskScheduler();
+	cout << "\n===============================================" << endl;
+}
 //===============================================================================================
 //===============================================================================================
 void TestForTaskScheduler::Test10OneTimeTaskAnd10RepeatTaskWithTaskStop()

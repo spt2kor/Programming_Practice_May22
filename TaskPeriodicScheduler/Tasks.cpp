@@ -44,9 +44,15 @@ ITask::~ITask()
 }
 
 //-------------------------------------------------------------------------------------------
+auto ITask::GetExecFreqAsStr() const
+{
+	return string((ExecutionFrequency::OneTimeExecution == execFreqType) ? "OneTimeExecution" : "RepeatedExecution");
+}
+
+
 void ITask::PrintTask() const
 {
-	cout << "\n \txxx ITask int ID : [[ " << taskIntID <<" ]], [[" << GetExecutionFrequencyAsString() << "]] "<< endl;
+	cout << "\n \txxx ITask int ID : [[ " << taskIntID <<" ]], [[" << GetExecFreqAsStr() << "]] "<< endl;
 }
 
 //=========================================================================================

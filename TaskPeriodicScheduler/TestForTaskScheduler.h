@@ -25,7 +25,13 @@ public:
 
 	//all test functions below
 	void TestSingleOneTimeTask();
+	void TestStopOfSingleOneTimeTask();
+
 	void TestSingleRepeatTask();
+	void TestStopOfSingleRepeatTask();
+
+	void Test2OneTimeTaskAnd2RepeatTaskWithTaskStop();
+
 	void Test10OneTimeTaskAnd10RepeatTaskWithTaskStop();
 	
 	//void RunAllTests();

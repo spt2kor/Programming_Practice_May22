@@ -70,9 +70,7 @@ public:
 
 	void PrintTask() const;
 
-	string GetExecutionFrequencyAsString() {
-		return (ExecutionFrequency::OneTimeExecution == execFreqType) ? "OneTimeExecution" : "RepeatedExecution";
-	}
+	auto  GetExecFreqAsStr() const;
 };
 
 //===============================================================
